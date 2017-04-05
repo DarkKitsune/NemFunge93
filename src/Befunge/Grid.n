@@ -1,0 +1,99 @@
+using System;
+using System.IO;
+
+namespace Befunge
+{
+    public class Grid
+    {
+        Data = array(80, 25) : array.[2][char];
+
+        public this()
+        {
+            Clear();
+        }
+
+        public this(path : string)
+        {
+            Clear();
+
+            try
+            {
+                def lines = File.ReadAllLines(path);
+                foreach (j in [0 .. Math.Min(24, lines.Length - 1)])
+                    foreach (i in [0 .. Math.Min(79, lines[j].Length - 1)])
+                        Data[i, j] = lines[j][i];
+            }
+            catch
+            {
+                | _e is FileNotFoundException => throw Exception("Could not find file \"" + path + "\"");
+            }
+        }
+
+        public Get(x : int, y : int) : char
+        {
+            if (x < 0 || x > 79 || y < 0 || y > 24)
+                '\0'
+            else
+                Data[x, y]
+        }
+
+        public Set(x : int, y : int, v : char) : void
+        {
+            if (x < 0 || x > 79 || y < 0 || y > 24)
+                Data[x, y] = v;
+            else
+                _ = 0;
+        }
+
+        public Clone() : Grid
+        {
+            def grid = Grid();
+            def copy(i : int, j : int) : void
+            {
+                grid.Data[i, j] = Data[i, j];
+            }
+            forall(copy);
+
+            grid
+        }
+
+        public Clear() : void
+        {
+            def clear() : char
+            {
+                ' ';
+            }
+            forall(clear);
+        }
+
+
+        forall(f : int * int -> void) : void
+        {
+            foreach (i in [0 .. 79])
+                foreach (j in [0 .. 24])
+                    f(i, j);
+        }
+        _forall(f : int * int -> char) : void
+        {
+            foreach (i in [0 .. 79])
+                foreach (j in [0 .. 24])
+                    Data[i, j] = f(i, j);
+        }
+        _forall(f : void -> void) : void
+        {
+            foreach (i in [0 .. 79])
+                foreach (j in [0 .. 24])
+                {
+                    f();
+                    _ = i;
+                    _ = j;
+                }
+        }
+        forall(f : void -> char) : void
+        {
+            foreach (i in [0 .. 79])
+                foreach (j in [0 .. 24])
+                    Data[i, j] = f();
+        }
+    }
+}

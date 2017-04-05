@@ -1,0 +1,30 @@
+using System;
+
+namespace Program
+{
+    public class Program
+    {
+        public static Main(args : array[string]) : void
+        {
+            if (args.Length > 0)
+            {
+                try
+                {
+                    def grid = Befunge.Grid(args[0]);
+                    def vm = Befunge.VM();
+                    vm.SetGrid(grid);
+                    vm.Run();
+                    Console.WriteLine("");
+                }
+                catch
+                {
+                    | e is Exception => Console.WriteLine("\nError: " + e.Message);
+                }
+            }
+            else
+            {
+                Console.WriteLine("Error: No file specified");
+            }
+        }
+    }
+}

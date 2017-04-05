@@ -1,0 +1,296 @@
+using System;
+using System.Collections.Generic;
+
+namespace Befunge
+{
+    public class VM
+    {
+        enum Direction : int
+        {
+            | Right = 0
+            | Up    = 1
+            | Left  = 2
+            | Down  = 3
+        }
+
+        mutable BaseGrid : Grid;
+        mutable Grid : Grid;
+        mutable Pointer = (0, 0);
+        mutable PointerDirection = Direction.Right : Direction;
+        mutable Stopped = true;
+        mutable StringMode = false;
+
+        Stack = Stack() : Stack[int];
+        Rand = Random();
+
+
+        public SetGrid(grid : Grid) : void
+        {
+            BaseGrid = grid;
+        }
+
+        public Run() : void
+        {
+            Start();
+
+            while (!Stopped)
+            {
+                Read();
+                Step();
+            }
+
+            Stop();
+        }
+
+
+
+        Start() : void
+        {
+            Grid = BaseGrid.Clone();
+            Stack.Clear();
+            Pointer = (0, 0);
+            PointerDirection = Direction.Right;
+            Stopped = false;
+        }
+
+        Stop() : void
+        {
+            Stopped = true;
+        }
+
+        Step() : void
+        {
+            def (px, py) = Pointer;
+            mutable x = px, y = py;
+
+            match (PointerDirection)
+            {
+                | Direction.Right => {
+                    x += 1;
+                    x = if (x > 79)
+                            x - 80;
+                        else
+                            x;
+                }
+                | Direction.Up => {
+                    y -= 1;
+                    y = if (y < 0)
+                            y + 24;
+                        else
+                            y;
+                }
+                | Direction.Left => {
+                    x -= 1;
+                    x = if (x < 0)
+                            x + 80;
+                        else
+                            x;
+                }
+                | Direction.Down => {
+                    y += 1;
+                    y = if (y > 23)
+                            y - 24;
+                        else
+                            y;
+                }
+                | _ => _ = 0;
+            }
+            Pointer = (x, y);
+        }
+
+        Read() : void
+        {
+            def c = Grid.Get(Pointer);
+            match (c)
+            {
+                | '"'   => StringMode = !StringMode;
+                | _     =>  if (!StringMode)
+                                Action(c);
+                            else
+                                push(c :> int);
+            }
+        }
+
+        Action(c : char) : void
+        {
+            | ' '   => _ = 0;
+            | '+'   => add();
+            | '-'   => sub();
+            | '*'   => mul();
+            | '/'   => div();
+            | '%'   => mod();
+            | '!'   => not();
+            | '`'   => gt();
+            | '>'   => PointerDirection = Direction.Right;
+            | '<'   => PointerDirection = Direction.Left;
+            | '^'   => PointerDirection = Direction.Up;
+            | 'v'   => PointerDirection = Direction.Down;
+            | '?'   => randDirection();
+            | '_'   => hIf();
+            | '|'   => vIf();
+            | ':'   => dup();
+            | '\\'  => swapTop();
+            | '$'   => _ = pop();
+            | '.'   => Console.Write(pop());
+            | ','   => Console.Write(pop() :> char);
+            | '#'   => Step();
+            | 'g'   => getChar();
+            | 'p'   => putChar();
+            | '&'   => inInt();
+            | '~'   => inChar();
+            | '@'   => Stopped = true;
+            | '0'   => push(0);
+            | '1'   => push(1);
+            | '2'   => push(2);
+            | '3'   => push(3);
+            | '4'   => push(4);
+            | '5'   => push(5);
+            | '6'   => push(6);
+            | '7'   => push(7);
+            | '8'   => push(8);
+            | '9'   => push(9);
+            | 'a'   => push(10);
+            | 'b'   => push(11);
+            | 'c'   => push(12);
+            | 'd'   => push(13);
+            | 'e'   => push(14);
+            | 'f'   => push(15);
+            | _     => throw Exception("Invalid instruction '" + c + "' at " + pointerPosString());
+        }
+
+
+        pointerPosString() : string
+        {
+            def (x, y) = Pointer;
+            "(" + x + ", " + y + ")";
+        }
+
+        push(n : int) : void
+        {
+            Stack.Push(n);
+        }
+
+        pop() : int
+        {
+            if (Stack.Count == 0)
+                0;
+            else
+                Stack.Pop();
+        }
+
+        swap(a : int, b : int) : (int * int)
+        {
+            (b, a)
+        }
+
+        swap(a : int, b : int, c : int) : (int * int * int)
+        {
+            (c, b, a)
+        }
+
+        add() : void
+        {
+            push(pop() + pop());
+        }
+
+        sub() : void
+        {
+            def (a, b) = swap(pop(), pop());
+            push(a - b);
+        }
+
+        mul() : void
+        {
+            push(pop() * pop());
+        }
+
+        div() : void
+        {
+            def (a, b) = swap(pop(), pop());
+            push(a / b);
+        }
+
+        mod() : void
+        {
+            def (a, b) = swap(pop(), pop());
+            push(a % b);
+        }
+
+        not() : void
+        {
+            push(   if (pop() == 0)
+                        1
+                    else
+                        0   );
+        }
+
+        gt() : void
+        {
+            push(   if (pop() < pop())
+                        1
+                    else
+                        0   );
+        }
+
+        randDirection() : void
+        {
+            PointerDirection = Rand.Next(4) :> Direction;
+        }
+
+        hIf() : void
+        {
+            if (pop() == 0)
+                PointerDirection = Direction.Right
+            else
+                PointerDirection = Direction.Left;
+        }
+
+        vIf() : void
+        {
+            if (pop() == 0)
+                PointerDirection = Direction.Down
+            else
+                PointerDirection = Direction.Up;
+        }
+
+        dup() : void
+        {
+            def v = pop();
+            push(v);
+            push(v);
+        }
+
+        swapTop() : void
+        {
+            def (a, b) = swap(pop(), pop());
+            push(a);
+            push(b);
+        }
+
+        getChar() : void
+        {
+            def (x, y) = swap(pop(), pop());
+            push(Grid.Get(x, y) :> int);
+        }
+
+        putChar() : void
+        {
+            def (v, x, y) = swap(pop(), pop(), pop());
+            Grid.Set(x, y, v :> char);
+        }
+
+        inInt() : void
+        {
+            mutable parsed : int;
+            if (!Int32.TryParse(Console.ReadLine(), out parsed))
+                throw Exception("Input was not an integer");
+            else
+                push(parsed);
+        }
+
+        inChar() : void
+        {
+            push(Console.ReadKey().KeyChar);
+        }
+    }
+}
